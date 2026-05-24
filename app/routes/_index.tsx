@@ -3,16 +3,11 @@ import { redirect } from "@remix-run/node";
 
 import Guide from "~/components/Guide";
 import Logo from "~/components/Logo";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
 
 export async function loader() {
-  let isSupabaseAvailable = true;
-
-  try {
-    getSupabaseClient();
-  } catch (error) {
-    isSupabaseAvailable = false;
-  }
+  const isSupabaseAvailable = !!(
+    process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  );
 
   if (isSupabaseAvailable) {
     return redirect("/login");
@@ -23,8 +18,8 @@ export async function loader() {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "Blevins HRIS" },
+    { name: "description", content: "Welcome to Blevins HRIS!" },
   ];
 };
 
@@ -39,7 +34,8 @@ export default function Index() {
       </main>
       <footer className="w-full px-4 pb-8 mx-auto max-w-7xl">
         <p className="text-sm text-center">
-          &copy; {new Date().getFullYear()} Netlify. All rights reserved.
+          &copy; {new Date().getFullYear()} Blevins Holdings. All rights
+          reserved.
         </p>
       </footer>
     </>

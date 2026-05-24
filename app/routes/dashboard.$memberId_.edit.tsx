@@ -10,48 +10,34 @@ import invariant from "tiny-invariant";
 import Button from "~/components/Button";
 import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
 import TextField from "~/components/TextField";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 export const meta: MetaFunction = () => {
-  return [
-    {
-      title: "Edit Member | Remix Dashboard",
-    },
-  ];
+  return [{ title: "Edit Member | Blevins HRIS" }];
 };
 
 export async function action({ params, request }: ActionFunctionArgs) {
   invariant(params.memberId, "Missing memberId param");
   const formData = await request.formData();
   const updates = Object.fromEntries(formData);
-
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
   const { error } = await supabase
     .from("members")
     .update(updates)
     .eq("id", params.memberId);
-
-  if (error) {
-    throw new Response(error.message, { status: 500 });
-  }
-
+  if (error) throw new Response(error.message, { status: 500 });
   return redirect(`/dashboard/${params.memberId}`);
 }
 
-export const loader = async ({ params }: LoaderFunctionArgs) => {
+export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   invariant(params.memberId, "Missing memberId param");
-
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
   const { data: member, error } = await supabase
     .from("members")
     .select("*")
     .eq("id", params.memberId)
     .single();
-
-  if (error) {
-    throw new Response(error.message, { status: 500 });
-  }
-
+  if (error) throw new Response(error.message, { status: 500 });
   return Response.json({ member });
 };
 

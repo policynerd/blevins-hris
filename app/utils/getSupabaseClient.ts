@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 export function getSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_DATABASE_URL!;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Supabase environment variables are missing.");

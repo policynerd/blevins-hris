@@ -1,4 +1,8 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from "@remix-run/node";
 import { Link, useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 
 import Button from "~/components/Button";
@@ -8,7 +12,7 @@ import EditIcon from "~/components/icons/Edit";
 import ViewIcon from "~/components/icons/View";
 import { formatDate } from "~/utils/formatDate";
 import { getInitials } from "~/utils/getInitials";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 type Employee = {
   id: string;
@@ -44,22 +48,20 @@ export const meta: MetaFunction = () => [{ title: "Employees | Blevins HRIS" }];
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const employeeId = formData.get("employeeId");
-
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
   const { error } = await supabase
     .from("employees")
     .delete()
     .eq("id", employeeId);
-
   if (error) throw new Response(error.message, { status: 500 });
   return Response.json({ message: "Employee deleted" });
 }
 
-export async function loader({ request }: { request: Request }) {
+export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const status = url.searchParams.get("status");
+  const { supabase } = createClient(request);
 
-  const supabase = getSupabaseClient();
   let query = supabase
     .from("employees")
     .select(

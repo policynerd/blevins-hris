@@ -4,22 +4,18 @@ import { Form, useActionData, useNavigation } from "@remix-run/react";
 
 import Button from "~/components/Button";
 import TextField from "~/components/TextField";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 export const meta: MetaFunction = () => {
-  return [
-    {
-      title: "Create New Member | Remix Dashboard",
-    },
-  ];
+  return [{ title: "Create New Member | Blevins HRIS" }];
 };
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const email = formData.get("email");
   const updates = Object.fromEntries(formData);
+  const { supabase } = createClient(request);
 
-  const supabase = getSupabaseClient();
   const { data: existingMember, error: fetchError } = await supabase
     .from("members")
     .select("*")

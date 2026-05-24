@@ -7,12 +7,12 @@ import MenuIcon from "~/components/icons/Menu";
 import ProfilePopup from "~/components/ProfilePopup";
 import Sidebar from "~/components/Sidebar";
 import { getSession } from "~/session.server";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  try {
-    getSupabaseClient();
-  } catch (error) {
+  const isSupabaseAvailable = !!(
+    process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  );
+  if (!isSupabaseAvailable) {
     return redirect("/");
   }
 
