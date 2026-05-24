@@ -1,0 +1,136 @@
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from "@remix-run/node";
+import { redirect } from "@remix-run/node";
+import {
+  Form,
+  Link,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from "@remix-run/react";
+import invariant from "tiny-invariant";
+
+import Button from "~/components/Button";
+import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
+import TextField from "~/components/TextField";
+import { getSupabaseClient } from "~/utils/getSupabaseClient";
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  {
+    title: data?.department
+      ? `Edit ${data.department.name} | Blevins HRIS`
+      : "Edit Department | Blevins HRIS",
+  },
+];
+
+export async function loader({ params }: LoaderFunctionArgs) {
+  invariant(params.departmentId, "Missing departmentId param");
+  const supabase = getSupabaseClient();
+  const { data: department, error } = await supabase
+    .from("departments")
+    .select("*")
+    .eq("id", params.departmentId)
+    .single();
+
+  if (error) throw new Response(error.message, { status: 500 });
+  if (!department) throw new Response("Department not found", { status: 404 });
+  return Response.json({ department });
+}
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  invariant(params.departmentId, "Missing departmentId param");
+  const formData = await request.formData();
+  const supabase = getSupabaseClient();
+
+  const { error } = await supabase
+    .from("departments")
+    .update({
+      name: formData.get("name") as string,
+      description: (formData.get("description") as string) || null,
+      cost_center: (formData.get("cost_center") as string) || null,
+    })
+    .eq("id", params.departmentId);
+
+  if (error) return Response.json({ error: error.message }, { status: 500 });
+  return redirect("/dashboard/departments");
+}
+
+export default function EditDepartment() {
+  const { department } = useLoaderData<typeof loader>();
+  const actionData = useActionData<{ error?: string }>();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+
+  return (
+    <>
+      <div className="flex flex-col gap-2 mb-8">
+        <h1 className="text-2xl font-semibold text-slate-900 lg:text-3xl">
+          Edit Department
+        </h1>
+        <Link
+          to="/dashboard/departments"
+          className="text-sm text-slate-500 hover:underline"
+        >
+          &larr; Back to departments
+        </Link>
+      </div>
+      <div className="bg-white shadow-md rounded-xl p-6 lg:p-8 max-w-2xl">
+        <Form method="POST">
+          {actionData?.error && (
+            <p className="p-3 mb-4 text-sm rounded-md bg-rose-50 text-rose-700">
+              {actionData.error}
+            </p>
+          )}
+          <fieldset
+            className="space-y-4 disabled:opacity-70"
+            disabled={isSubmitting}
+          >
+            <TextField
+              id="name"
+              name="name"
+              label="Department Name"
+              required
+              defaultValue={department.name}
+            />
+            <div>
+              <label
+                htmlFor="description"
+                className="block mb-2 text-sm tracking-wide text-slate-700"
+              >
+                Description
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                defaultValue={department.description ?? ""}
+                className="block w-full rounded-md border p-3 text-sm text-slate-700 transition border-slate-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 focus:outline-none resize-none"
+              />
+            </div>
+            <TextField
+              id="cost_center"
+              name="cost_center"
+              label="Cost Center"
+              defaultValue={department.cost_center ?? ""}
+            />
+            <div className="flex items-center justify-end gap-4 pt-2">
+              <Button to="/dashboard/departments" variant="outlined">
+                Cancel
+              </Button>
+              <Button type="submit" loading={isSubmitting}>
+                Save Changes
+              </Button>
+            </div>
+          </fieldset>
+        </Form>
+      </div>
+    </>
+  );
+}
+
+export function ErrorBoundary() {
+  return <GlobalErrorBoundary />;
+}

@@ -3,30 +3,21 @@ import React from "react";
 
 import Logo from "~/components/Logo";
 import ArrowRightIcon from "./icons/ArrowRight";
-import ArrowTopRightIcon from "./icons/ArrowTopRight";
 import CloseIcon from "./icons/Close";
 
-const NAV_ITEMS = [
+const NAV_SECTIONS = [
   {
-    label: "Member List",
-    href: "/dashboard",
+    label: "People",
+    items: [
+      { label: "Employees", href: "/dashboard/employees" },
+      { label: "Departments", href: "/dashboard/departments" },
+    ],
   },
   {
-    label: "Member Details",
-    href: "/dashboard/14c8afd0-50cc-4aca-9547-c997ed306065",
-  },
-  {
-    label: "New Member",
-    href: "/dashboard/new",
-  },
-  {
-    label: "User Profile",
-    href: "/dashboard/user",
-  },
-  {
-    label: "Remix on Netlify",
-    href: "https://docs.netlify.com/frameworks/remix/",
-    newTab: true,
+    label: "Account",
+    items: [
+      { label: "User Profile", href: "/dashboard/user" },
+    ],
   },
 ];
 
@@ -42,7 +33,7 @@ export default function Sidebar({ isOpen, setIsOpen }: Props) {
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       }`}
     >
-      <div className="flex flex-col gap-8 p-4 bg-white rounded-lg shadow-md grow">
+      <div className="flex flex-col gap-6 p-4 bg-white rounded-lg shadow-md grow overflow-hidden">
         <div className="flex items-center justify-between gap-4">
           <Logo />
           <button
@@ -53,45 +44,44 @@ export default function Sidebar({ isOpen, setIsOpen }: Props) {
           </button>
         </div>
 
-        <div className="overflow-x-hidden overflow-y-scroll hide-scrollbar">
-          <ul className="border-t border-slate-200">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.label}>
-                <NavLink
-                  to={item.href}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "flex items-center justify-between px-2 py-4 border-b border-cyan-300"
-                      : "flex items-center justify-between px-2 py-4 border-b border-slate-200 group hover:border-cyan-300"
-                  }
-                  {...(item.newTab && {
-                    target: "_blank",
-                    rel: "noopener noreferer",
-                  })}
-                  end
-                >
-                  {({ isActive }) => (
-                    <>
-                      {item.label}
-                      <span
-                        className={
-                          isActive
-                            ? "text-cyan-300"
-                            : "text-slate-300 group-hover:text-cyan-300"
-                        }
-                      >
-                        {item.newTab ? (
-                          <ArrowTopRightIcon />
-                        ) : (
-                          <ArrowRightIcon />
-                        )}
-                      </span>
-                    </>
-                  )}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+        <div className="overflow-y-auto hide-scrollbar flex flex-col gap-6">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label}>
+              <p className="px-2 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {section.label}
+              </p>
+              <ul className="border-t border-slate-200">
+                {section.items.map((item) => (
+                  <li key={item.label}>
+                    <NavLink
+                      to={item.href}
+                      className={({ isActive }) =>
+                        isActive
+                          ? "flex items-center justify-between px-2 py-4 border-b border-cyan-300 font-medium"
+                          : "flex items-center justify-between px-2 py-4 border-b border-slate-200 group hover:border-cyan-300"
+                      }
+                      end={item.href === "/dashboard"}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <span className="text-sm">{item.label}</span>
+                          <span
+                            className={
+                              isActive
+                                ? "text-cyan-300"
+                                : "text-slate-300 group-hover:text-cyan-300"
+                            }
+                          >
+                            <ArrowRightIcon />
+                          </span>
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
     </aside>
