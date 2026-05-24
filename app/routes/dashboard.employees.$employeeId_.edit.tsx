@@ -17,7 +17,7 @@ import Button from "~/components/Button";
 import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
 import SelectField from "~/components/SelectField";
 import TextField from "~/components/TextField";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   {
@@ -27,9 +27,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   },
 ];
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   invariant(params.employeeId, "Missing employeeId param");
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
 
   const [
     { data: employee, error },
@@ -73,7 +73,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 export async function action({ request, params }: ActionFunctionArgs) {
   invariant(params.employeeId, "Missing employeeId param");
   const formData = await request.formData();
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
 
   const { error } = await supabase
     .from("employees")
@@ -99,10 +99,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
       hourly_rate: formData.get("hourly_rate")
         ? Number(formData.get("hourly_rate"))
         : null,
-      termination_date:
-        (formData.get("termination_date") as string) || null,
-      termination_reason:
-        (formData.get("termination_reason") as string) || null,
+      termination_date: (formData.get("termination_date") as string) || null,
+      termination_reason: (formData.get("termination_reason") as string) || null,
       notes: (formData.get("notes") as string) || null,
     })
     .eq("id", params.employeeId);
@@ -124,10 +122,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       is_primary: true,
     };
     if (addressId) {
-      await supabase
-        .from("employee_addresses")
-        .update(addressData)
-        .eq("id", addressId);
+      await supabase.from("employee_addresses").update(addressData).eq("id", addressId);
     } else {
       await supabase.from("employee_addresses").insert([addressData]);
     }
@@ -162,7 +157,6 @@ export default function EditEmployee() {
       label: `${m.first_name} ${m.last_name}`,
     })),
   ];
-
   const statusOptions = [
     { value: "active", label: "Active" },
     { value: "on_leave", label: "On Leave" },
@@ -184,295 +178,84 @@ export default function EditEmployee() {
   return (
     <>
       <div className="flex flex-col gap-2 mb-8">
-        <h1 className="text-2xl font-semibold text-slate-900 lg:text-3xl">
-          Edit Employee
-        </h1>
-        <Link
-          to={`/dashboard/employees/${employee.id}`}
-          className="text-sm text-slate-500 hover:underline"
-        >
+        <h1 className="text-2xl font-semibold text-slate-900 lg:text-3xl">Edit Employee</h1>
+        <Link to={`/dashboard/employees/${employee.id}`} className="text-sm text-slate-500 hover:underline">
           &larr; Back to {employee.first_name} {employee.last_name}
         </Link>
       </div>
 
       <Form method="POST">
         {actionData?.error && (
-          <p className="p-3 mb-6 text-sm rounded-md bg-rose-50 text-rose-700">
-            {actionData.error}
-          </p>
+          <p className="p-3 mb-6 text-sm rounded-md bg-rose-50 text-rose-700">{actionData.error}</p>
         )}
         <fieldset className="space-y-6 disabled:opacity-70" disabled={isSubmitting}>
-          {/* Personal Information */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Personal Information
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Personal Information</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <TextField
-                id="first_name"
-                name="first_name"
-                label="First Name"
-                required
-                defaultValue={employee.first_name}
-              />
-              <TextField
-                id="last_name"
-                name="last_name"
-                label="Last Name"
-                required
-                defaultValue={employee.last_name}
-              />
-              <TextField
-                id="preferred_name"
-                name="preferred_name"
-                label="Preferred Name"
-                defaultValue={employee.preferred_name ?? ""}
-              />
-              <TextField
-                id="date_of_birth"
-                name="date_of_birth"
-                type="date"
-                label="Date of Birth"
-                defaultValue={employee.date_of_birth ?? ""}
-              />
-              <TextField
-                id="profile_photo_url"
-                name="profile_photo_url"
-                type="url"
-                label="Profile Photo URL"
-                defaultValue={employee.profile_photo_url ?? ""}
-              />
+              <TextField id="first_name" name="first_name" label="First Name" required defaultValue={employee.first_name} />
+              <TextField id="last_name" name="last_name" label="Last Name" required defaultValue={employee.last_name} />
+              <TextField id="preferred_name" name="preferred_name" label="Preferred Name" defaultValue={employee.preferred_name ?? ""} />
+              <TextField id="date_of_birth" name="date_of_birth" type="date" label="Date of Birth" defaultValue={employee.date_of_birth ?? ""} />
+              <TextField id="profile_photo_url" name="profile_photo_url" type="url" label="Profile Photo URL" defaultValue={employee.profile_photo_url ?? ""} />
             </div>
           </div>
 
-          {/* Employment */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Employment
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Employment</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <TextField
-                id="hire_date"
-                name="hire_date"
-                type="date"
-                label="Hire Date"
-                required
-                defaultValue={employee.hire_date}
-              />
-              <SelectField
-                id="status"
-                name="status"
-                label="Status"
-                required
-                defaultValue={employee.status}
-                options={statusOptions}
-              />
-              <SelectField
-                id="employment_type"
-                name="employment_type"
-                label="Employment Type"
-                required
-                defaultValue={employee.employment_type}
-                options={employmentTypeOptions}
-              />
-              <SelectField
-                id="department_id"
-                name="department_id"
-                label="Department"
-                defaultValue={employee.department_id ?? ""}
-                options={deptOptions}
-              />
-              <SelectField
-                id="job_title_id"
-                name="job_title_id"
-                label="Job Title"
-                defaultValue={employee.job_title_id ?? ""}
-                options={titleOptions}
-              />
-              <SelectField
-                id="location_id"
-                name="location_id"
-                label="Location"
-                defaultValue={employee.location_id ?? ""}
-                options={locationOptions}
-              />
-              <SelectField
-                id="manager_id"
-                name="manager_id"
-                label="Reports To"
-                defaultValue={employee.manager_id ?? ""}
-                options={managerOptions}
-              />
-              <TextField
-                id="termination_date"
-                name="termination_date"
-                type="date"
-                label="Termination Date"
-                defaultValue={employee.termination_date ?? ""}
-              />
-              <div className="sm:col-span-2">
-                <TextField
-                  id="termination_reason"
-                  name="termination_reason"
-                  label="Termination Reason"
-                  defaultValue={employee.termination_reason ?? ""}
-                />
-              </div>
+              <TextField id="hire_date" name="hire_date" type="date" label="Hire Date" required defaultValue={employee.hire_date} />
+              <SelectField id="status" name="status" label="Status" required defaultValue={employee.status} options={statusOptions} />
+              <SelectField id="employment_type" name="employment_type" label="Employment Type" required defaultValue={employee.employment_type} options={employmentTypeOptions} />
+              <SelectField id="department_id" name="department_id" label="Department" defaultValue={employee.department_id ?? ""} options={deptOptions} />
+              <SelectField id="job_title_id" name="job_title_id" label="Job Title" defaultValue={employee.job_title_id ?? ""} options={titleOptions} />
+              <SelectField id="location_id" name="location_id" label="Location" defaultValue={employee.location_id ?? ""} options={locationOptions} />
+              <SelectField id="manager_id" name="manager_id" label="Reports To" defaultValue={employee.manager_id ?? ""} options={managerOptions} />
+              <TextField id="termination_date" name="termination_date" type="date" label="Termination Date" defaultValue={employee.termination_date ?? ""} />
+              <div className="sm:col-span-2"><TextField id="termination_reason" name="termination_reason" label="Termination Reason" defaultValue={employee.termination_reason ?? ""} /></div>
             </div>
           </div>
 
-          {/* Compensation */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Compensation
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Compensation</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <SelectField
-                id="pay_type"
-                name="pay_type"
-                label="Pay Type"
-                required
-                defaultValue={employee.pay_type}
-                options={payTypeOptions}
-              />
-              <TextField
-                id="salary"
-                name="salary"
-                type="number"
-                label="Annual Salary ($)"
-                defaultValue={employee.salary?.toString() ?? ""}
-              />
-              <TextField
-                id="hourly_rate"
-                name="hourly_rate"
-                type="number"
-                label="Hourly Rate ($)"
-                defaultValue={employee.hourly_rate?.toString() ?? ""}
-              />
+              <SelectField id="pay_type" name="pay_type" label="Pay Type" required defaultValue={employee.pay_type} options={payTypeOptions} />
+              <TextField id="salary" name="salary" type="number" label="Annual Salary ($)" defaultValue={employee.salary?.toString() ?? ""} />
+              <TextField id="hourly_rate" name="hourly_rate" type="number" label="Hourly Rate ($)" defaultValue={employee.hourly_rate?.toString() ?? ""} />
             </div>
           </div>
 
-          {/* Contact */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Contact Information
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Contact Information</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                id="work_email"
-                name="work_email"
-                type="email"
-                label="Work Email"
-                defaultValue={employee.work_email ?? ""}
-              />
-              <TextField
-                id="work_phone"
-                name="work_phone"
-                label="Work Phone"
-                defaultValue={employee.work_phone ?? ""}
-              />
-              <TextField
-                id="personal_email"
-                name="personal_email"
-                type="email"
-                label="Personal Email"
-                defaultValue={employee.personal_email ?? ""}
-              />
-              <TextField
-                id="personal_phone"
-                name="personal_phone"
-                label="Personal Phone"
-                defaultValue={employee.personal_phone ?? ""}
-              />
+              <TextField id="work_email" name="work_email" type="email" label="Work Email" defaultValue={employee.work_email ?? ""} />
+              <TextField id="work_phone" name="work_phone" label="Work Phone" defaultValue={employee.work_phone ?? ""} />
+              <TextField id="personal_email" name="personal_email" type="email" label="Personal Email" defaultValue={employee.personal_email ?? ""} />
+              <TextField id="personal_phone" name="personal_phone" label="Personal Phone" defaultValue={employee.personal_phone ?? ""} />
             </div>
           </div>
 
-          {/* Address */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Home Address
-            </h2>
-            {(primaryAddress as any)?.id && (
-              <input
-                type="hidden"
-                name="address_id"
-                value={(primaryAddress as any).id}
-              />
-            )}
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Home Address</h2>
+            {(primaryAddress as any)?.id && <input type="hidden" name="address_id" value={(primaryAddress as any).id} />}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <TextField
-                  id="address_line1"
-                  name="address_line1"
-                  label="Street Address"
-                  defaultValue={(primaryAddress as any)?.address_line1 ?? ""}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <TextField
-                  id="address_line2"
-                  name="address_line2"
-                  label="Apt / Suite / Unit"
-                  defaultValue={(primaryAddress as any)?.address_line2 ?? ""}
-                />
-              </div>
-              <TextField
-                id="city"
-                name="city"
-                label="City"
-                defaultValue={(primaryAddress as any)?.city ?? ""}
-              />
-              <TextField
-                id="state"
-                name="state"
-                label="State"
-                defaultValue={(primaryAddress as any)?.state ?? ""}
-              />
-              <TextField
-                id="zip"
-                name="zip"
-                label="Zip Code"
-                defaultValue={(primaryAddress as any)?.zip ?? ""}
-              />
-              <TextField
-                id="country"
-                name="country"
-                label="Country"
-                defaultValue={(primaryAddress as any)?.country ?? "US"}
-              />
+              <div className="sm:col-span-2"><TextField id="address_line1" name="address_line1" label="Street Address" defaultValue={(primaryAddress as any)?.address_line1 ?? ""} /></div>
+              <div className="sm:col-span-2"><TextField id="address_line2" name="address_line2" label="Apt / Suite / Unit" defaultValue={(primaryAddress as any)?.address_line2 ?? ""} /></div>
+              <TextField id="city" name="city" label="City" defaultValue={(primaryAddress as any)?.city ?? ""} />
+              <TextField id="state" name="state" label="State" defaultValue={(primaryAddress as any)?.state ?? ""} />
+              <TextField id="zip" name="zip" label="Zip Code" defaultValue={(primaryAddress as any)?.zip ?? ""} />
+              <TextField id="country" name="country" label="Country" defaultValue={(primaryAddress as any)?.country ?? "US"} />
             </div>
           </div>
 
-          {/* Notes */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Notes
-            </h2>
-            <label
-              htmlFor="notes"
-              className="block mb-2 text-sm tracking-wide text-slate-700"
-            >
-              Internal Notes
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              rows={4}
-              defaultValue={employee.notes ?? ""}
-              className="block w-full rounded-md border p-3 text-sm text-slate-700 transition border-slate-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 focus:outline-none resize-none"
-            />
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Notes</h2>
+            <label htmlFor="notes" className="block mb-2 text-sm tracking-wide text-slate-700">Internal Notes</label>
+            <textarea id="notes" name="notes" rows={4} defaultValue={employee.notes ?? ""} className="block w-full rounded-md border p-3 text-sm text-slate-700 transition border-slate-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 focus:outline-none resize-none" />
           </div>
 
           <div className="flex items-center justify-end gap-4">
-            <Button
-              to={`/dashboard/employees/${employee.id}`}
-              variant="outlined"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" loading={isSubmitting}>
-              Save Changes
-            </Button>
+            <Button to={`/dashboard/employees/${employee.id}`} variant="outlined">Cancel</Button>
+            <Button type="submit" loading={isSubmitting}>Save Changes</Button>
           </div>
         </fieldset>
       </Form>

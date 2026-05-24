@@ -1,4 +1,8 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import {
   Form,
@@ -12,14 +16,14 @@ import Button from "~/components/Button";
 import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
 import SelectField from "~/components/SelectField";
 import TextField from "~/components/TextField";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 export const meta: MetaFunction = () => [
   { title: "New Employee | Blevins HRIS" },
 ];
 
-export async function loader() {
-  const supabase = getSupabaseClient();
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { supabase } = createClient(request);
   const [{ data: departments }, { data: jobTitles }, { data: locations }, { data: managers }] =
     await Promise.all([
       supabase.from("departments").select("id, name").order("name"),
@@ -42,7 +46,7 @@ export async function loader() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
 
   const employeeData = {
     employee_number: "",
@@ -76,9 +80,7 @@ export async function action({ request }: ActionFunctionArgs) {
     .select()
     .single();
 
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const addressLine1 = formData.get("address_line1") as string;
   if (addressLine1) {
@@ -171,272 +173,81 @@ export default function NewEmployee() {
           </p>
         )}
         <fieldset className="space-y-6 disabled:opacity-70" disabled={isSubmitting}>
-          {/* Personal Information */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
             <h2 className="text-base font-semibold text-slate-900 mb-6">
               Personal Information
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <TextField
-                id="first_name"
-                name="first_name"
-                label="First Name"
-                required
-                placeholder="Jane"
-              />
-              <TextField
-                id="last_name"
-                name="last_name"
-                label="Last Name"
-                required
-                placeholder="Smith"
-              />
-              <TextField
-                id="preferred_name"
-                name="preferred_name"
-                label="Preferred Name"
-                placeholder="(optional)"
-              />
-              <TextField
-                id="date_of_birth"
-                name="date_of_birth"
-                type="date"
-                label="Date of Birth"
-              />
-              <TextField
-                id="profile_photo_url"
-                name="profile_photo_url"
-                type="url"
-                label="Profile Photo URL"
-                placeholder="https://..."
-              />
+              <TextField id="first_name" name="first_name" label="First Name" required placeholder="Jane" />
+              <TextField id="last_name" name="last_name" label="Last Name" required placeholder="Smith" />
+              <TextField id="preferred_name" name="preferred_name" label="Preferred Name" placeholder="(optional)" />
+              <TextField id="date_of_birth" name="date_of_birth" type="date" label="Date of Birth" />
+              <TextField id="profile_photo_url" name="profile_photo_url" type="url" label="Profile Photo URL" placeholder="https://..." />
             </div>
           </div>
 
-          {/* Employment */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Employment
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Employment</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <TextField
-                id="hire_date"
-                name="hire_date"
-                type="date"
-                label="Hire Date"
-                required
-              />
-              <SelectField
-                id="employment_type"
-                name="employment_type"
-                label="Employment Type"
-                required
-                defaultValue="full_time"
-                options={employmentTypeOptions}
-              />
-              <SelectField
-                id="department_id"
-                name="department_id"
-                label="Department"
-                options={deptOptions}
-              />
-              <SelectField
-                id="job_title_id"
-                name="job_title_id"
-                label="Job Title"
-                options={titleOptions}
-              />
-              <SelectField
-                id="location_id"
-                name="location_id"
-                label="Location"
-                options={locationOptions}
-              />
-              <SelectField
-                id="manager_id"
-                name="manager_id"
-                label="Reports To"
-                options={managerOptions}
-              />
+              <TextField id="hire_date" name="hire_date" type="date" label="Hire Date" required />
+              <SelectField id="employment_type" name="employment_type" label="Employment Type" required defaultValue="full_time" options={employmentTypeOptions} />
+              <SelectField id="department_id" name="department_id" label="Department" options={deptOptions} />
+              <SelectField id="job_title_id" name="job_title_id" label="Job Title" options={titleOptions} />
+              <SelectField id="location_id" name="location_id" label="Location" options={locationOptions} />
+              <SelectField id="manager_id" name="manager_id" label="Reports To" options={managerOptions} />
             </div>
           </div>
 
-          {/* Compensation */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Compensation
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Compensation</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <SelectField
-                id="pay_type"
-                name="pay_type"
-                label="Pay Type"
-                required
-                defaultValue="salary"
-                options={payTypeOptions}
-              />
-              <TextField
-                id="salary"
-                name="salary"
-                type="number"
-                label="Annual Salary ($)"
-                placeholder="75000"
-              />
-              <TextField
-                id="hourly_rate"
-                name="hourly_rate"
-                type="number"
-                label="Hourly Rate ($)"
-                placeholder="25.00"
-              />
+              <SelectField id="pay_type" name="pay_type" label="Pay Type" required defaultValue="salary" options={payTypeOptions} />
+              <TextField id="salary" name="salary" type="number" label="Annual Salary ($)" placeholder="75000" />
+              <TextField id="hourly_rate" name="hourly_rate" type="number" label="Hourly Rate ($)" placeholder="25.00" />
             </div>
           </div>
 
-          {/* Contact */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Contact Information
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Contact Information</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                id="work_email"
-                name="work_email"
-                type="email"
-                label="Work Email"
-                placeholder="jane@company.com"
-              />
-              <TextField
-                id="work_phone"
-                name="work_phone"
-                label="Work Phone"
-                placeholder="+1 555 000 0000"
-              />
-              <TextField
-                id="personal_email"
-                name="personal_email"
-                type="email"
-                label="Personal Email"
-                placeholder="jane@gmail.com"
-              />
-              <TextField
-                id="personal_phone"
-                name="personal_phone"
-                label="Personal Phone"
-                placeholder="+1 555 000 0001"
-              />
+              <TextField id="work_email" name="work_email" type="email" label="Work Email" placeholder="jane@company.com" />
+              <TextField id="work_phone" name="work_phone" label="Work Phone" placeholder="+1 555 000 0000" />
+              <TextField id="personal_email" name="personal_email" type="email" label="Personal Email" placeholder="jane@gmail.com" />
+              <TextField id="personal_phone" name="personal_phone" label="Personal Phone" placeholder="+1 555 000 0001" />
             </div>
           </div>
 
-          {/* Address */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Home Address
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Home Address</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <TextField
-                  id="address_line1"
-                  name="address_line1"
-                  label="Street Address"
-                  placeholder="123 Main St"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <TextField
-                  id="address_line2"
-                  name="address_line2"
-                  label="Apt / Suite / Unit"
-                  placeholder="Apt 4B"
-                />
-              </div>
-              <TextField
-                id="city"
-                name="city"
-                label="City"
-                placeholder="Austin"
-              />
-              <TextField
-                id="state"
-                name="state"
-                label="State"
-                placeholder="TX"
-              />
-              <TextField
-                id="zip"
-                name="zip"
-                label="Zip Code"
-                placeholder="78701"
-              />
-              <TextField
-                id="country"
-                name="country"
-                label="Country"
-                defaultValue="US"
-              />
+              <div className="sm:col-span-2"><TextField id="address_line1" name="address_line1" label="Street Address" placeholder="123 Main St" /></div>
+              <div className="sm:col-span-2"><TextField id="address_line2" name="address_line2" label="Apt / Suite / Unit" placeholder="Apt 4B" /></div>
+              <TextField id="city" name="city" label="City" placeholder="Austin" />
+              <TextField id="state" name="state" label="State" placeholder="TX" />
+              <TextField id="zip" name="zip" label="Zip Code" placeholder="78701" />
+              <TextField id="country" name="country" label="Country" defaultValue="US" />
             </div>
           </div>
 
-          {/* Emergency Contact */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Emergency Contact
-            </h2>
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Emergency Contact</h2>
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                id="emergency_name"
-                name="emergency_name"
-                label="Full Name"
-                placeholder="John Smith"
-              />
-              <TextField
-                id="emergency_relationship"
-                name="emergency_relationship"
-                label="Relationship"
-                placeholder="Spouse"
-              />
-              <TextField
-                id="emergency_phone"
-                name="emergency_phone"
-                label="Phone"
-                placeholder="+1 555 000 0000"
-              />
-              <TextField
-                id="emergency_email"
-                name="emergency_email"
-                type="email"
-                label="Email"
-                placeholder="john@gmail.com"
-              />
+              <TextField id="emergency_name" name="emergency_name" label="Full Name" placeholder="John Smith" />
+              <TextField id="emergency_relationship" name="emergency_relationship" label="Relationship" placeholder="Spouse" />
+              <TextField id="emergency_phone" name="emergency_phone" label="Phone" placeholder="+1 555 000 0000" />
+              <TextField id="emergency_email" name="emergency_email" type="email" label="Email" placeholder="john@gmail.com" />
             </div>
           </div>
 
-          {/* Notes */}
           <div className="bg-white shadow-md rounded-xl p-6 lg:p-8">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">
-              Notes
-            </h2>
-            <label
-              htmlFor="notes"
-              className="block mb-2 text-sm tracking-wide text-slate-700"
-            >
-              Internal Notes
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              rows={4}
-              className="block w-full rounded-md border p-3 text-sm text-slate-700 transition border-slate-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 focus:outline-none resize-none"
-              placeholder="Any additional notes about this employee..."
-            />
+            <h2 className="text-base font-semibold text-slate-900 mb-6">Notes</h2>
+            <label htmlFor="notes" className="block mb-2 text-sm tracking-wide text-slate-700">Internal Notes</label>
+            <textarea id="notes" name="notes" rows={4} className="block w-full rounded-md border p-3 text-sm text-slate-700 transition border-slate-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100 focus:outline-none resize-none" placeholder="Any additional notes about this employee..." />
           </div>
 
           <div className="flex items-center justify-end gap-4">
-            <Button to="/dashboard/employees" variant="outlined">
-              Cancel
-            </Button>
-            <Button type="submit" loading={isSubmitting}>
-              Create Employee
-            </Button>
+            <Button to="/dashboard/employees" variant="outlined">Cancel</Button>
+            <Button type="submit" loading={isSubmitting}>Create Employee</Button>
           </div>
         </fieldset>
       </Form>

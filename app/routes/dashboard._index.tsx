@@ -1,4 +1,8 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from "@remix-run/node";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 
 import Button from "~/components/Button";
@@ -8,7 +12,7 @@ import EditIcon from "~/components/icons/Edit";
 import ViewIcon from "~/components/icons/View";
 import { formatDate } from "~/utils/formatDate";
 import { getInitials } from "~/utils/getInitials";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 type Member = {
   id: number;
@@ -20,38 +24,28 @@ type Member = {
 };
 
 export const meta: MetaFunction = () => {
-  return [
-    {
-      title: "Member List | Remix Dashboard",
-    },
-  ];
+  return [{ title: "Member List | Blevins HRIS" }];
 };
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
   const memberId = formData.get("memberId");
-
-  const supabase = getSupabaseClient();
-  const { error } = await supabase.from("members").delete().eq("id", memberId);
-
-  if (error) {
-    throw new Response(error.message, { status: 500 });
-  }
-
+  const { supabase } = createClient(request);
+  const { error } = await supabase
+    .from("members")
+    .delete()
+    .eq("id", memberId);
+  if (error) throw new Response(error.message, { status: 500 });
   return Response.json({ message: "Member deleted successfully" });
 }
 
-export async function loader() {
-  const supabase = getSupabaseClient();
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { supabase } = createClient(request);
   const { data: members, error } = await supabase
     .from("members")
     .select("*")
     .order("created_at", { ascending: true });
-
-  if (error) {
-    throw new Response(error.message, { status: 500 });
-  }
-
+  if (error) throw new Response(error.message, { status: 500 });
   return Response.json({ members });
 }
 

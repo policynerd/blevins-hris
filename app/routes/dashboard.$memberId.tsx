@@ -5,30 +5,21 @@ import invariant from "tiny-invariant";
 import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
 import { formatDate } from "~/utils/formatDate";
 import { getInitials } from "~/utils/getInitials";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 export const meta: MetaFunction = () => {
-  return [
-    {
-      title: "Member | Remix Dashboard",
-    },
-  ];
+  return [{ title: "Member | Blevins HRIS" }];
 };
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   invariant(params.memberId, "Missing memberId param");
-
-  const supabase = getSupabaseClient();
+  const { supabase } = createClient(request);
   const { data: member, error } = await supabase
     .from("members")
     .select("*")
     .eq("id", params.memberId)
     .single();
-
-  if (error) {
-    throw new Response(error.message, { status: 500 });
-  }
-
+  if (error) throw new Response(error.message, { status: 500 });
   return Response.json({ member });
 }
 

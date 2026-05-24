@@ -6,7 +6,7 @@ import Button from "~/components/Button";
 import { GlobalErrorBoundary } from "~/components/GlobalErrorBoundary";
 import { formatDate } from "~/utils/formatDate";
 import { getInitials } from "~/utils/getInitials";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
+import { createClient } from "~/utils/supabase.server";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700",
@@ -38,10 +38,10 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   },
 ];
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
   invariant(params.employeeId, "Missing employeeId param");
+  const { supabase } = createClient(request);
 
-  const supabase = getSupabaseClient();
   const { data: employee, error } = await supabase
     .from("employees")
     .select(
@@ -117,7 +117,6 @@ export default function EmployeeDetail() {
         </Link>
       </div>
 
-      {/* Profile header */}
       <div className="bg-white shadow-md rounded-xl overflow-hidden mb-6">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-6 lg:p-8">
           {employee.profile_photo_url ? (
