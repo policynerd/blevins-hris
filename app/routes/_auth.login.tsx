@@ -7,18 +7,13 @@ import { redirect } from "@remix-run/node";
 import { Form, Link, useActionData, useNavigation } from "@remix-run/react";
 
 import { commitSession, getSession } from "~/session.server";
-
 import Button from "~/components/Button";
 import TextField from "~/components/TextField";
 import { getSupabaseClient } from "~/utils/getSupabaseClient";
 
-export const meta: MetaFunction = () => {
-  return [
-    {
-      title: "Login | Remix Dashboard",
-    },
-  ];
-};
+export const meta: MetaFunction = () => [
+  { title: "Login | Blevins HRIS" },
+];
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -46,48 +41,27 @@ export async function action({ request }: ActionFunctionArgs) {
   session.set("__session", data.session.access_token);
 
   return redirect("/dashboard", {
-    headers: {
-      "Set-Cookie": await commitSession(session),
-    },
+    headers: { "Set-Cookie": await commitSession(session) },
   });
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("__session");
-
-  if (token) {
-    return redirect("/dashboard");
-  }
-
+  if (session.get("__session")) return redirect("/dashboard");
   return Response.json({});
 }
 
 export default function LogIn() {
   const actionData = useActionData<{ error?: string }>();
   const navigation = useNavigation();
-
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <div className="w-full max-w-2xl px-8 py-10 space-y-8 bg-white shadow-md rounded-xl lg:space-y-10 lg:px-10 lg:py-12 ">
+    <div className="w-full max-w-2xl px-8 py-10 space-y-8 bg-white shadow-md rounded-xl lg:space-y-10 lg:px-10 lg:py-12">
       <div className="space-y-3">
         <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl lg:text-4xl">
-          Log In to Remix Dashboard
+          Log In to Blevins HRIS
         </h1>
-        <div className="flex gap-3 p-3 rounded-md bg-cyan-50">
-          <div className="flex items-center justify-center w-5 h-5 font-serif italic text-white rounded-full bg-cyan-500">
-            i
-          </div>
-          <div className="text-xs">
-            <p>
-              Email: <span className="font-medium">demo@example.com</span>
-            </p>
-            <p>
-              Password: <span className="font-medium">demo123</span>
-            </p>
-          </div>
-        </div>
       </div>
       <Form method="POST">
         {actionData?.error && (
@@ -113,7 +87,7 @@ export default function LogIn() {
             label="Password"
             required
             type="password"
-            placeholder="password"
+            placeholder="Password"
           />
           <Link
             to="/reset-password"
@@ -124,12 +98,6 @@ export default function LogIn() {
           <Button type="submit" className="w-full" loading={isSubmitting}>
             Login
           </Button>
-          <p className="text-sm text-center">
-            New on Remix Dashboard?{" "}
-            <Link className="underline text-cyan-600" to="/signup">
-              Create an account
-            </Link>
-          </p>
         </fieldset>
       </Form>
     </div>

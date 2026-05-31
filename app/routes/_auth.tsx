@@ -1,18 +1,6 @@
-import { redirect } from "@remix-run/node";
 import { Outlet } from "@remix-run/react";
 
 import Logo from "~/components/Logo";
-import { getSupabaseClient } from "~/utils/getSupabaseClient";
-
-export function loader() {
-  try {
-    getSupabaseClient(); // Throws an error if Supabase is not set
-  } catch (error) {
-    return redirect("/"); // Redirect to _index.tsx
-  }
-
-  return Response.json({});
-}
 
 export default function AuthLayout() {
   return (
