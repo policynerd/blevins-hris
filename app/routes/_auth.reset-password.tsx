@@ -7,7 +7,7 @@ import TextField from "~/components/TextField";
 export const meta: MetaFunction = () => {
   return [
     {
-      title: "Reset password | Remix Dashboard",
+      title: "Reset password | Blevins HRIS",
     },
   ];
 };
