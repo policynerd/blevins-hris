@@ -11,9 +11,7 @@ import Button from "~/components/Button";
 import TextField from "~/components/TextField";
 import { getSupabaseClient } from "~/utils/getSupabaseClient";
 
-export const meta: MetaFunction = () => [
-  { title: "Login | Blevins HRIS" },
-];
+export const meta: MetaFunction = () => [{ title: "Login | Blevins HRIS" }];
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
@@ -27,7 +25,19 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  const supabase = getSupabaseClient();
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch {
+    return Response.json(
+      {
+        error:
+          "Authentication is not configured. Please contact your administrator.",
+      },
+      { status: 500 }
+    );
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -35,6 +45,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
   if (error) {
     return Response.json({ error: error.message }, { status: 400 });
+  }
+
+  if (!data.session) {
+    return Response.json(
+      {
+        error:
+          "Unable to start a session. Your email may not be confirmed yet.",
+      },
+      { status: 400 }
+    );
   }
 
   const session = await getSession(request.headers.get("Cookie"));
