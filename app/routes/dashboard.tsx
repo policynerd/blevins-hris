@@ -9,11 +9,14 @@ import Sidebar from "~/components/Sidebar";
 import { getSession } from "~/session.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const isSupabaseAvailable = !!(
-    process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  );
-  if (!isSupabaseAvailable) {
-    return redirect("/");
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    return redirect("/login");
   }
 
   const session = await getSession(request.headers.get("Cookie"));
